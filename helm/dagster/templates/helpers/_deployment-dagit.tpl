@@ -94,8 +94,7 @@ spec:
               subPath: dagster.yaml
             {{- if $userDeployments.enabled }}
             - name: dagster-workspace-yaml
-              mountPath: "/dagster-workspace/workspace.yaml"
-              subPath: workspace.yaml
+              mountPath: "/dagster-workspace/"
             {{- end }}
           ports:
             - name: http
