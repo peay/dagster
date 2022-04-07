@@ -1,7 +1,7 @@
 ---
 apiVersion: v2
 name: dagster
-version: 0.0.1-dev
+version: 0.14.7
 kubeVersion: ">= 1.18.0-0"
 description: The data orchestration platform built for productivity.
 type: application
@@ -15,7 +15,7 @@ sources:
   - https://github.com/dagster-io/dagster/tree/master/helm/dagster
 dependencies:
   - name: dagster-user-deployments
-    version: 0.0.1-dev
+    version: 0.14.7
     condition: dagster-user-deployments.enableSubchart
   - name: postgresql
     version: 8.1.0

@@ -35,7 +35,7 @@ dagit:
     # When a tag is not supplied for a Dagster provided image,
     # it will default as the Helm chart version.
     repository: "docker.io/dagster/dagster-celery-k8s"
-    tag: ~
+    tag: 0.14.7
     pullPolicy: Always
 
   service:
@@ -234,7 +234,7 @@ dagster-user-deployments:
       image:
         # When a tag is not supplied, it will default as the Helm chart version.
         repository: "docker.io/dagster/user-code-example"
-        tag: ~
+        tag: 0.14.7
 
         # Change with caution! If you're using a fixed tag for pipeline run images, changing the
         # image pull policy to anything other than "Always" will use a cached/stale image, which is
