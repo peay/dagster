@@ -2,7 +2,7 @@
 import dataclasses
 import hashlib
 import os
-import time
+from datetime import datetime, timedelta
 from typing import Dict, Iterator
 from urllib.parse import urlparse
 
@@ -274,7 +274,8 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
         # Monitor Job Run
         monitor = EmrEksJobRunMonitor(cluster_id=self.cluster_id, region_name=self.region_name)
 
-        ts_start_ms = int(time.time() * 1000) - 3600  # When to start polling logs
+        # When to start polling logs
+        ts_start_ms = int((datetime.now() - timedelta(minutes=1)).timestamp() * 1000)
 
         with raise_execution_interrupts():
             try:
@@ -499,22 +500,7 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
             step_context,
         )
 
-        step_run_ref = EmrEksPySparkResource._remove_parent_run_id(step_run_ref)
-
         return step_run_ref
-
-    @staticmethod
-    def _remove_parent_run_id(step_run_ref: StepRunRef) -> StepRunRef:
-        """Hack to remove parent run ID for the remote step run ref.
-
-        As an ephemeral Dagster instance is used, the parent run IDs cause
-        issues as they are not known to the ephemeral instance.
-        """
-        return step_run_ref._replace(
-            dagster_run=step_run_ref.dagster_run._replace(root_run_id=None)._replace(
-                parent_run_id=None
-            )
-        )
 
     def _emr_client(self):
         return boto3.client("emr-containers", region_name=self.region_name)
