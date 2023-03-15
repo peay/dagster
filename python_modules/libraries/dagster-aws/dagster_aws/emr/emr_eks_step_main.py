@@ -19,16 +19,15 @@ CODE_ZIP_NAME = "code.zip"
 def main(s3_bucket_step_run_ref: str, s3_key_step_run_ref: str) -> None:
     session = boto3.client("s3")
 
-    # This must be called before any of our packages is imported
-    # Force the right version of dagstersdk to get imported before
-    # Dagster messes with the Python path.
+    # This must be called before any of our packages is imported so that
+    # they can take precedence over any packages installed on the EMR docker and
+    # that imports do not fail.
     _adjust_pythonpath_for_staged_assets(os.getenv("ENV_PATHS").split(","))
 
     print(f"Python path: {sys.path}")
-
-    # Read the step description
     from dagster_aws.s3.file_manager import S3FileHandle, S3FileManager
 
+    # Read the step description
     file_manager = S3FileManager(session, s3_bucket_step_run_ref, "")
     file_handle = S3FileHandle(s3_bucket_step_run_ref, s3_key_step_run_ref)
 

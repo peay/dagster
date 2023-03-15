@@ -1,12 +1,12 @@
 from unittest import mock
+
+import pytest
+from dagster import build_init_resource_context
+from dagster.core.events import DagsterEvent, DagsterEventType
 from dagster_aws.emr.emr_eks_pyspark_step_launcher import (
     EmrEksPySparkResource,
     emr_eks_pyspark_resource,
 )
-from dagster.core.events import DagsterEvent, DagsterEventType
-from dagster import build_init_resource_context
-import pytest
-import os
 
 
 @mock.patch(
@@ -83,7 +83,7 @@ def test_emr_pyspark_step_launcher_legacy_arguments():
             build_init_resource_context(
                 config={
                     **mock_config,
-                    "additional_relative_paths": paths,
+                    "additional_relative_paths": "paths",
                 }
             )
         )

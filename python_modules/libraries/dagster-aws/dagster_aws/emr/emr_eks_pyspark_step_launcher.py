@@ -20,7 +20,6 @@ from dagster import (
 from dagster._core.execution.plan.external_step import (
     PICKLED_STEP_RUN_REF_FILE_NAME,
 )
-from dagster.core.code_pointer import FileCodePointer, ModuleCodePointer
 from dagster.core.definitions.step_launcher import StepRunRef
 from dagster.core.errors import (
     DagsterExecutionInterruptedError,
@@ -41,14 +40,13 @@ from dagster.core.execution.plan.objects import (
 )
 from dagster_pyspark.resources import PySparkResource
 
+from dagster_aws.emr import emr_eks_step_main
+from dagster_aws.emr.emr_eks_job_run_monitor import EmrEksJobError, EmrEksJobRunMonitor
 from dagster_aws.emr.pyspark_step_launcher import (
     CODE_ZIP_NAME,
     EMR_PY_SPARK_STEP_LAUNCHER_BASE_CONFIG,
     EmrPySparkStepLauncherBase,
 )
-
-from dagster_aws.emr import emr_eks_step_main
-from dagster_aws.emr.emr_eks_job_run_monitor import EmrEksJobError, EmrEksJobRunMonitor
 
 EMR_EKS_CONFIG_SCHEMA = dict(
     **EMR_PY_SPARK_STEP_LAUNCHER_BASE_CONFIG,
@@ -95,15 +93,16 @@ def emr_eks_pyspark_resource(context):
 
 
 class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
-    """A PySpark resource where code is executed on a remote
+    """
+    A PySpark resource where code is executed on a remote
     EMR on EKS cluster.
 
     Launching Steps on Remote Clusters
-    ----------------------------------
-    When this resource implementation is used as a ``PySparkResource``,
+
+    When this resource implementation is used as a `PySparkResource`,
     a job run on EMR on EKS will be started, and the step will run there.
-    This works by making the resource also inherit from ``StepLauncher``,
-    and implement ``launch_step`` to serialize the definition of the step,
+    This works by making the resource also inherit from `StepLauncher`,
+    and implement `launch_step` to serialize the definition of the step,
     run it on the remote cluster.
 
     Dagster operations produce events (e.g., when a step finishes, or when
@@ -114,9 +113,9 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
     JSON serialized, and have to be pickled. As these events are small,
     the following procedure is used:
 
-    - In the Spark driver, as part of the job entrypoint (``job_main.py``),
+    - In the Spark driver, as part of the job entrypoint (`job_main.py`),
       events produced by the step are pickled, converted to Base64, and
-      logged to ``stdout``.
+      logged to `stdout`.
 
     - Logs of the Spark driver are automatically reported by EMR to a
       CloudWatch log group.
@@ -127,28 +126,21 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
       Dagster.
 
     Logs are uploaded to CloudWatch by EMR every 10s. As such, events may
-    not be reported to Dagster in real time, and there can be some delay.
+    not be reported to Dagster in real time, and there can be some delays.
     Events will also often show up in Dagster in batches, when a batch
-    of new logs has been pulled. Although more involved solution might
+    of new logs has been pulled. Although more involved solutions might
     allow to reduce latency (e.g., creating per-job run AWS SQS queues),
     using the logs should be good enough for now.
 
     Deploying Code
-    --------------
+
     The resource supports two ways of deploying our Python code to the
     EMR on EKS jobs:
 
     - **Running a container that contains the code.** This is the target
       workflow for a cloud deployment.
 
-      As part of a CI job, we create a docker image from the EMR base
-      image, and add our Python virtual environment, as well as our Python
-      code. To run a job, we directly run this docker image and do not need
-      to upload anything else, as the code is baked in the image.
-
-      New CI jobs update the docker image when the code is updated. With
-      caching in docker builds, most of those builds will be fast as only
-      the code changes, and the Python environment remains the same.
+      In this case, all of the required code is baked in the image.
 
       This workflow is not amenable to local development, though.
 
@@ -160,7 +152,7 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
       add it to the Python path, and use that to import modules.
 
       **Note**: Python implicit namespace packages are not supported.
-      All packages **must** have an ``__init__.py`` to be importable
+      All packages **must** have an `__init__.py` to be importable
       in this workflow.
 
       **Note**: if the container used has some code, it will just be
