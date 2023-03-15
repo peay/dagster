@@ -4,22 +4,21 @@ from typing import DefaultDict
 import botocore
 
 
-class CloudwatchLogsFollower:
-    """Tail CloudWatch Logs from log streams.
+class CloudWatchLogsFollower:
+    """
+    Tail CloudWatch Logs from log streams.
 
     CloudWatch Logs has no API to directly stream new log
     events from log streams. Instead, we have to regularly
     fetch new logs using an appropriate ``startTime`` argument.
 
-    Multiple log streams
-    --------------------
-    When ``log_stream_name_prefix`` matches multiple log streams,
+    When `log_stream_name_prefix` matches multiple log streams,
     it is possible that some log events will be missed.
 
-    Assuming two log streams ``A`` and ``B``, ``filter_log_events``
-    might returns log events for ``B`` if those are available. In
-    our next call to ``filter_log_events``, only events with a
-    larger timestamp will be queried. However, if events for ``A``
+    Assuming two log streams `A` and `B`, `filter_log_events`
+    might returns log events for `B` if those are available. In
+    our next call to `filter_log_events`, only events with a
+    larger timestamp will be queried. However, if events for `A`
     with an earlier timestamp are pushed to CloudWatch afterwards,
     these will never be queried.
 
@@ -54,12 +53,6 @@ class CloudwatchLogsFollower:
                 paging_args = {"nextToken": next_token}
             else:
                 paging_args = {"startTime": self._max_timestamp}
-
-            log.debug(
-                f"Fetching log events for logGroupName={self.log_group_name}, "
-                f"logStreamNamePrefix={self.log_stream_name_prefix}, "
-                f"with args: {paging_args}"
-            )
 
             response = self._client.filter_log_events(
                 logGroupName=self.log_group_name,

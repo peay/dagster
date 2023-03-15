@@ -13,7 +13,7 @@ from typing import Iterator, List
 import boto3
 from dagster.core.events import DagsterEvent
 
-from .cloud_watch_logs_follower import CloudwatchLogsFollower
+from .cloud_watch_logs_follower import CloudWatchLogsFollower
 
 STATES_ONGOING = {"PENDING", "SUBMITTED", "RUNNING"}
 STATES_SUCCESS = {"COMPLETED"}
@@ -54,7 +54,7 @@ class EmrEksJobRunMonitor:
     def consume_tailers(
         self,
         log: Logger,
-        tailers: List[CloudwatchLogsFollower],
+        tailers: List[CloudWatchLogsFollower],
         log_stream_name_prefix: str,
     ) -> Iterator[DagsterEvent]:
         """Check logs from a list of log tailers. Yield events for logs corresponding to
@@ -94,7 +94,7 @@ class EmrEksJobRunMonitor:
         """
         cw_client = boto3.client("logs", region_name=self.region_name)
         tailers = [
-            CloudwatchLogsFollower(
+            CloudWatchLogsFollower(
                 cw_client,
                 log_group_name,
                 log_stream_name_prefix + stream,

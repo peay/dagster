@@ -47,12 +47,12 @@ def main(s3_bucket_step_run_ref: str, s3_key_step_run_ref: str) -> None:
 
 
 def _adjust_pythonpath_for_staged_assets(code_subpaths=None):
-    """Adjust Python path for Python packages in staged code.
+    """
+    Adjust Python path for Python packages in staged code.
 
     When staging code through S3 instead of using code baked in the
-    docker image, packages such as ``dagster-sdk`` are still picked up
-    from the docker image by default, as they are not directly in the
-    path.
+    docker image, packages are still picked up from the docker image
+    by default, as they are not directly in the path.
 
     This function adds Python packages in the staged code to the path
     explicitly so that they are picked up.

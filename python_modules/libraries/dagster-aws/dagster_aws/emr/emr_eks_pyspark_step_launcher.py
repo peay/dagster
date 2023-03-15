@@ -47,8 +47,8 @@ from dagster_aws.emr.pyspark_step_launcher import (
     EmrPySparkStepLauncherBase,
 )
 
-from . import emr_eks_step_main
-from .monitor import EmrEksJobError, EmrEksJobRunMonitor
+from dagster_aws.emr import emr_eks_step_main
+from dagster_aws.emr.emr_eks_job_run_monitor import EmrEksJobError, EmrEksJobRunMonitor
 
 EMR_EKS_CONFIG_SCHEMA = dict(
     **EMR_PY_SPARK_STEP_LAUNCHER_BASE_CONFIG,
@@ -499,34 +499,7 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
             step_context,
         )
 
-        if not self.deploy_local_job_package:
-            # Container has the code, but we need to point Dagster to it
-            step_run_ref = EmrEksPySparkResource._set_step_run_ref_working_directory(step_run_ref)
-
         step_run_ref = EmrEksPySparkResource._remove_parent_run_id(step_run_ref)
-
-        return step_run_ref
-
-    @staticmethod
-    def _set_step_run_ref_working_directory(
-        step_run_ref: StepRunRef,
-        working_directory: str = "/opt/raptor/pipelines/",  # TODO: do not hardcode
-    ) -> StepRunRef:
-        """Hack for submitting code at a different location in the remote
-        containers as locally.
-        """
-        if isinstance(step_run_ref.recon_pipeline.repository.pointer, FileCodePointer):
-            step_run_ref = step_run_ref._replace(
-                recon_pipeline=step_run_ref.recon_pipeline._replace(
-                    repository=step_run_ref.recon_pipeline.repository._replace(
-                        pointer=ModuleCodePointer(
-                            step_run_ref.recon_pipeline.repository.pointer.module,
-                            step_run_ref.recon_pipeline.repository.pointer.fn_name,
-                            working_directory,
-                        )
-                    )
-                )
-            )
 
         return step_run_ref
 
