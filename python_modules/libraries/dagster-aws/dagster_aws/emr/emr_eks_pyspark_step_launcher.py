@@ -39,6 +39,8 @@ from dagster.core.execution.plan.objects import (
     UserFailureData,
 )
 from dagster_pyspark.resources import PySparkResource
+from dagster.core.code_pointer import FileCodePointer, ModuleCodePointer
+
 
 from dagster_aws.emr import emr_eks_step_main
 from dagster_aws.emr.emr_eks_job_run_monitor import EmrEksJobError, EmrEksJobRunMonitor
@@ -66,6 +68,15 @@ EMR_EKS_CONFIG_SCHEMA = dict(
             ),
             default_value=[],
         ),
+        "working_directory_override": Field(
+            StringSource,
+            is_required=False,
+            description=(
+                "EMR on EKS assumes the entry point for the job to be located in ``. "
+                "If the user code is installed somewhere else in the container, the default "
+                "value needs to be overridden."
+            ),
+        ),
         "log4j_conf": Field(Permissive(), default_value={}, is_required=False),
     },
 )
@@ -89,6 +100,7 @@ def emr_eks_pyspark_resource(context):
         spark_config=spark_config,
         ephemeral_instance=context.instance.is_ephemeral,
         additional_relative_paths=context.resource_config.get("additional_relative_paths"),
+        working_directory_override=context.resource_config.get("working_directory_override"),
     )
 
 
@@ -180,6 +192,7 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
         spark_config,
         ephemeral_instance,
         additional_relative_paths,
+        working_directory_override,
     ):
         EmrPySparkStepLauncherBase.__init__(
             self,
@@ -198,6 +211,7 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
         self.log_group_name = check.str_param(log_group_name, "log_group_name")
         self.additional_relative_paths = additional_relative_paths
         self.log4j_conf = log4j_conf
+        self.working_directory_override = working_directory_override
 
         # TODO: all this configuration business is extremely verbose. How can we
         # make it more streamlined? Each parameter is mentioned 4 times, and the
@@ -491,6 +505,36 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
         step_run_ref = step_context_to_step_run_ref(
             step_context,
         )
+
+        if not self.deploy_local_job_package and self.working_directory_override is not None:
+            # Container has the code, but we need to point Dagster to it
+            step_run_ref = EmrEksPySparkResource._set_step_run_ref_working_directory(
+                step_run_ref, self.working_directory_override
+            )
+
+        return step_run_ref
+
+    @staticmethod
+    def _set_step_run_ref_working_directory(
+        step_run_ref: StepRunRef,
+        working_directory: str,  # TODO: do not hardcode
+    ) -> StepRunRef:
+        """
+        Change the default entry point directory if the code is located somewhere else
+        in the container.
+        """
+        if isinstance(step_run_ref.recon_pipeline.repository.pointer, FileCodePointer):
+            step_run_ref = step_run_ref._replace(
+                recon_pipeline=step_run_ref.recon_pipeline._replace(
+                    repository=step_run_ref.recon_pipeline.repository._replace(
+                        pointer=ModuleCodePointer(
+                            step_run_ref.recon_pipeline.repository.pointer.module,
+                            step_run_ref.recon_pipeline.repository.pointer.fn_name,
+                            working_directory,
+                        )
+                    )
+                )
+            )
 
         return step_run_ref
 
