@@ -13,7 +13,7 @@ from typing import Iterator, List
 import boto3
 from dagster.core.events import DagsterEvent
 
-from .cloud_watch_logs_follower import CloudWatchLogsFollower
+from dagster_aws.emr.cloud_watch_logs_follower import CloudWatchLogsFollower
 
 STATES_ONGOING = {"PENDING", "SUBMITTED", "RUNNING"}
 STATES_SUCCESS = {"COMPLETED"}
