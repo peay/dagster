@@ -22,7 +22,7 @@ def main(s3_bucket_step_run_ref: str, s3_key_step_run_ref: str) -> None:
     # This must be called before any of our packages is imported so that
     # they can take precedence over any packages installed on the EMR docker and
     # that imports do not fail.
-    _adjust_pythonpath_for_staged_assets(os.getenv("ENV_PATHS").split(","))
+    _adjust_pythonpath_for_staged_assets()
 
     print(f"Python path: {sys.path}")
     from dagster_aws.s3.file_manager import S3FileHandle, S3FileManager
@@ -45,7 +45,7 @@ def main(s3_bucket_step_run_ref: str, s3_key_step_run_ref: str) -> None:
     print("Job is over")
 
 
-def _adjust_pythonpath_for_staged_assets(code_subpaths=None):
+def _adjust_pythonpath_for_staged_assets():
     """
     Adjust Python path for Python packages in staged code.
 
@@ -56,7 +56,11 @@ def _adjust_pythonpath_for_staged_assets(code_subpaths=None):
     This function adds Python packages in the staged code to the path
     explicitly so that they are picked up.
     """
-    code_subpaths = code_subpaths or []
+    code_subpaths_str = os.getenv("ENV_PATHS")
+    if code_subpaths_str is None:
+        return
+
+    code_subpaths = code_subpaths_str.split(",")
 
     code_entries = [
         filename for filename in sys.path if os.path.basename(filename) == CODE_ZIP_NAME
