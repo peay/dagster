@@ -84,9 +84,10 @@ class EmrEksJobRunMonitor:
         wait_interval_secs: int = 10,
         max_wait_after_done_secs: int = 120,
     ) -> Iterator[DagsterEvent]:
-        """Wait until the job finishes, and reports logs/events.
+        """
+        Wait until the job finishes, and reports logs/events.
 
-        Generic log events are written back to ``stdout`` or ``stderr``,
+        Generic log events are written back to `stdout` or `stderr`,
         which will be captured by Dagster directly.
 
         Log events containing a serialized Dagster event are yieled
@@ -133,7 +134,7 @@ class EmrEksJobRunMonitor:
 
     def _is_dagster_event(self, msg):
         # TODO: currently, serde logic for Dagster event is spread
-        # between here and `job_main.py`. Move it to a single class
+        # between here and `emr_eks_step_main.py`. Move it to a single class
         # which can be used in both locations.
 
         return msg.startswith("""{"event":""")

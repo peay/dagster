@@ -72,7 +72,7 @@ EMR_EKS_CONFIG_SCHEMA = dict(
             StringSource,
             is_required=False,
             description=(
-                "EMR on EKS assumes the entry point for the job to be located in ``. "
+                "EMR on EKS assumes a specific entry point path for the job. "
                 "If the user code is installed somewhere else in the container, the default "
                 "value needs to be overridden."
             ),
@@ -109,8 +109,6 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
     A PySpark resource where code is executed on a remote
     EMR on EKS cluster.
 
-    Launching Steps on Remote Clusters
-
     When this resource implementation is used as a `PySparkResource`,
     a job run on EMR on EKS will be started, and the step will run there.
     This works by making the resource also inherit from `StepLauncher`,
@@ -125,7 +123,7 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
     JSON serialized, and have to be pickled. As these events are small,
     the following procedure is used:
 
-    - In the Spark driver, as part of the job entrypoint (`job_main.py`),
+    - In the Spark driver, as part of the job entrypoint (`emr_eks_step_main.py`),
       events produced by the step are pickled, converted to Base64, and
       logged to `stdout`.
 
@@ -143,8 +141,6 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
     of new logs has been pulled. Although more involved solutions might
     allow to reduce latency (e.g., creating per-job run AWS SQS queues),
     using the logs should be good enough for now.
-
-    Deploying Code
 
     The resource supports two ways of deploying our Python code to the
     EMR on EKS jobs:
@@ -212,10 +208,6 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
         self.additional_relative_paths = additional_relative_paths
         self.log4j_conf = log4j_conf
         self.working_directory_override = working_directory_override
-
-        # TODO: all this configuration business is extremely verbose. How can we
-        # make it more streamlined? Each parameter is mentioned 4 times, and the
-        # types are mentioned twices here and above.
 
         if ephemeral_instance:
             # The step launcher resource is first created in
@@ -324,9 +316,6 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
 
         # Configuration
         spark_config = dict(self.spark_config)
-
-        # Determine type of submission and set container image
-
         spark_config["spark.kubernetes.container.image"] = self.container_image
 
         # Configure staging location

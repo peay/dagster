@@ -10,7 +10,7 @@ class CloudWatchLogsFollower:
 
     CloudWatch Logs has no API to directly stream new log
     events from log streams. Instead, we have to regularly
-    fetch new logs using an appropriate ``startTime`` argument.
+    fetch new logs using an appropriate `startTime` argument.
 
     When `log_stream_name_prefix` matches multiple log streams,
     it is possible that some log events will be missed.

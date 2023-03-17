@@ -24,7 +24,6 @@ def main(s3_bucket_step_run_ref: str, s3_key_step_run_ref: str) -> None:
     # that imports do not fail.
     _adjust_pythonpath_for_staged_assets()
 
-    print(f"Python path: {sys.path}")
     from dagster_aws.s3.file_manager import S3FileHandle, S3FileManager
 
     # Read the step description
@@ -85,7 +84,7 @@ def _event_to_str(event):
 
 
 def _dump_event(event):
-    """Dump a Dagster event to ``stdout``."""
+    """Dump a Dagster event to `stdout`."""
     event_json = json.dumps({"event": _event_to_str(event), "eventDescr": str(event)})
 
     if len(event_json) > _MAX_EVENT_SIZE_BYTES:
