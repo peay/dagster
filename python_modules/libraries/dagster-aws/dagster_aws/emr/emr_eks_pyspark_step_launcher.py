@@ -20,6 +20,7 @@ from dagster import (
 from dagster._core.execution.plan.external_step import (
     PICKLED_STEP_RUN_REF_FILE_NAME,
 )
+from dagster.core.code_pointer import FileCodePointer, ModuleCodePointer
 from dagster.core.definitions.step_launcher import StepRunRef
 from dagster.core.errors import (
     DagsterExecutionInterruptedError,
@@ -39,8 +40,6 @@ from dagster.core.execution.plan.objects import (
     UserFailureData,
 )
 from dagster_pyspark.resources import PySparkResource
-from dagster.core.code_pointer import FileCodePointer, ModuleCodePointer
-
 
 from dagster_aws.emr import emr_eks_step_main
 from dagster_aws.emr.emr_eks_job_run_monitor import EmrEksJobError, EmrEksJobRunMonitor

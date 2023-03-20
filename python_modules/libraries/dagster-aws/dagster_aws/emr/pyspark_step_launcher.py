@@ -3,7 +3,6 @@ import pickle
 import sys
 import tempfile
 import time
-import zipfile
 
 import boto3
 from botocore.exceptions import ClientError
@@ -21,6 +20,7 @@ from dagster._core.execution.plan.external_step import (
     step_context_to_step_run_ref,
 )
 from dagster._serdes import deserialize_value
+from dagster_pyspark.utils import DEFAULT_EXCLUSION_LIST, build_pyspark_zip
 
 from dagster_aws.emr import EmrError, EmrJobRunner, emr_step_main
 from dagster_aws.emr.configs_spark import spark_config as get_spark_config
@@ -31,6 +31,7 @@ EMR_SPARK_HOME = "/usr/lib/spark/"
 
 CODE_ZIP_NAME = "code.zip"
 
+HIDDEN_FILES_REGEX = [r"^[\.].+", r".+[\/][\.].+"]
 
 EMR_PY_SPARK_STEP_LAUNCHER_BASE_CONFIG = {
     "spark_config": get_spark_config(),
@@ -221,28 +222,6 @@ emr_pyspark_step_launcher.__doc__ = "\n".join(
 )
 
 
-def build_pyspark_zip(zip_file, path, skip_hidden=True, follow_links=False):
-    """Archives the current path into a file named `zip_file`."""
-    check.str_param(zip_file, "zip_file")
-    check.str_param(path, "path")
-
-    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
-        for root, _, files in os.walk(path, followlinks=follow_links):
-            for fname in files:
-                abs_fname = os.path.join(root, fname)
-
-                # Skip various artifacts
-                if (
-                    "pytest" in abs_fname
-                    or "__pycache__" in abs_fname
-                    or "pyc" in abs_fname
-                    or (skip_hidden and "." in root)
-                ):
-                    continue
-
-                zf.write(abs_fname, os.path.relpath(os.path.join(root, fname), path))
-
-
 class EmrPySparkStepLauncherBase(StepLauncher):
     def __init__(
         self,
@@ -292,8 +271,6 @@ class EmrPySparkStepLauncherBase(StepLauncher):
         `spark-submit --py-files my_pyspark_project.zip emr_step_main.py` on EMR this will
         print 1, 2.
         """
-        # from dagster_pyspark.utils import build_pyspark_zip
-
         with tempfile.TemporaryDirectory() as temp_dir:
             s3 = boto3.client("s3", region_name=self.region_name)
 
@@ -319,7 +296,9 @@ class EmrPySparkStepLauncherBase(StepLauncher):
                 zip_local_path = os.path.join(temp_dir, CODE_ZIP_NAME)
 
                 build_pyspark_zip(
-                    zip_local_path, local_job_package_path, skip_hidden=True, follow_links=True
+                    zip_local_path,
+                    local_job_package_path,
+                    DEFAULT_EXCLUSION_LIST + HIDDEN_FILES_REGEX,
                 )
                 _upload_file_to_s3(zip_local_path, CODE_ZIP_NAME)
 

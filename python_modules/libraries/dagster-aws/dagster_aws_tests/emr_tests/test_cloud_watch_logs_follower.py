@@ -2,9 +2,8 @@ import logging
 import time
 
 import boto3
-from moto import mock_logs
-
 from dagster_aws.emr.cloud_watch_logs_follower import CloudWatchLogsFollower
+from moto import mock_logs
 
 
 @mock_logs

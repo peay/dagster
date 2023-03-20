@@ -1,6 +1,6 @@
+import os
 import sys
 from unittest import mock
-import os
 
 from dagster_aws.emr.emr_eks_step_main import _adjust_pythonpath_for_staged_assets
 
