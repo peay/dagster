@@ -1,9 +1,7 @@
 """Monitoring for EMR on EKS job runs."""
-import base64
 import itertools
 import json
 import logging
-import pickle
 import sys
 import time
 from dataclasses import dataclass
@@ -14,6 +12,7 @@ import boto3
 from dagster.core.events import DagsterEvent
 
 from dagster_aws.emr.cloud_watch_logs_follower import CloudWatchLogsFollower
+from dagster_aws.emr.dagster_event_serde import deserialize_dagster_event, is_dagster_event
 
 STATES_ONGOING = {"PENDING", "SUBMITTED", "RUNNING"}
 STATES_SUCCESS = {"COMPLETED"}
@@ -69,8 +68,8 @@ class EmrEksJobRunMonitor:
             # `some/prefix/stdout` -> `stdout`.
             log_stream = log_record["logStreamName"][len(log_stream_name_prefix) :]
 
-            if self._is_dagster_event(msg):
-                yield from self._yield_event(msg)
+            if is_dagster_event(msg):
+                yield deserialize_dagster_event(msg)
             else:
                 self._write_log(log_stream, msg)
 
@@ -131,22 +130,6 @@ class EmrEksJobRunMonitor:
                 yield event
                 if _is_final_event(event):
                     return
-
-    def _is_dagster_event(self, msg):
-        # TODO: currently, serde logic for Dagster event is spread
-        # between here and `emr_eks_step_main.py`. Move it to a single class
-        # which can be used in both locations.
-
-        return msg.startswith("""{"event":""")
-
-    def _yield_event(self, msg: str) -> Iterator[DagsterEvent]:
-        payload = json.loads(msg)
-        event = pickle.loads(base64.b64decode(payload["event"].encode("ascii")))
-
-        if not isinstance(event, DagsterEvent):
-            raise RuntimeError(f"Event {event} was not a Dagster event")
-
-        yield event
 
     def _write_log(self, log_stream: str, msg: str) -> None:
         if log_stream == "stdout":

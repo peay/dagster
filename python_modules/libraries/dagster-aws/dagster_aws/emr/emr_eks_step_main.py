@@ -1,6 +1,4 @@
 """Entrypoint for a step running on EMR on EKS."""
-import base64
-import json
 import os
 import pickle
 import sys
@@ -9,10 +7,6 @@ import boto3
 from dagster.core.execution.plan.external_step import run_step_from_ref
 from dagster.core.instance import DagsterInstance
 
-# Any event whose JSON representation is larger than this
-# will be dropped. Otherwise, it can cause EMR to stop
-# reporting all logs to Cloudwatch Logs.
-_MAX_EVENT_SIZE_BYTES = 64 * 1024
 CODE_ZIP_NAME = "code.zip"
 
 
@@ -23,6 +17,7 @@ def main(s3_bucket_step_run_ref: str, s3_key_step_run_ref: str) -> None:
     # they can take precedence over any packages installed on the EMR docker and
     # that imports do not fail.
     _adjust_pythonpath_for_staged_assets()
+
 
     from dagster_aws.s3.file_manager import S3FileHandle, S3FileManager
 
@@ -35,11 +30,13 @@ def main(s3_bucket_step_run_ref: str, s3_key_step_run_ref: str) -> None:
 
     print(f"Running the following step: {step_run_ref}")
 
+    from dagster_aws.emr.dagster_event_serde import dump_event
+
     # Run the Dagster job. The plan process should tail the job
     # logs in order to extract events.
     with DagsterInstance.ephemeral() as instance:
         for event in run_step_from_ref(step_run_ref, instance):
-            _dump_event(event)
+            dump_event(event)
 
     print("Job is over")
 
@@ -76,22 +73,6 @@ def _adjust_pythonpath_for_staged_assets():
 
         print(f"Adding {path_to_add} to Python path")
         sys.path.insert(0, path_to_add)
-
-
-def _event_to_str(event):
-    """Convert a Dagster event to a string that can be logged."""
-    return base64.b64encode(pickle.dumps(event)).decode("ascii")
-
-
-def _dump_event(event):
-    """Dump a Dagster event to `stdout`."""
-    event_json = json.dumps({"event": _event_to_str(event), "eventDescr": str(event)})
-
-    if len(event_json) > _MAX_EVENT_SIZE_BYTES:
-        print(f"Dropping event of size {len(event_json)} bytes: '{event_json[:32]}...'")
-        return
-
-    print(event_json)
 
 
 if __name__ == "__main__":
