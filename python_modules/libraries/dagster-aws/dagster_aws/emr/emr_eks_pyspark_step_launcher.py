@@ -109,7 +109,8 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
     EMR on EKS cluster.
 
     When this resource implementation is used as a `PySparkResource`,
-    a job run on EMR on EKS will be started, and the step will run there.
+    a job run on EMR on EKS will be started, and the step will run there
+    (the ID of such remote cluster is specified in the `cluster_id` parameter).
     This works by making the resource also inherit from `StepLauncher`,
     and implement `launch_step` to serialize the definition of the step,
     run it on the remote cluster.
@@ -127,7 +128,8 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
       logged to `stdout`.
 
     - Logs of the Spark driver are automatically reported by EMR to a
-      CloudWatch log group.
+      CloudWatch log group (whose name is provided in the `log_group_name`
+      parameter).
 
     - The step launcher running on the original Dagster instance tails
       the CloudWatch logs. Logs are reported to Dagster. When an event
@@ -142,10 +144,14 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
     using the logs should be good enough for now.
 
     The resource supports two ways of deploying our Python code to the
-    EMR on EKS jobs:
+    EMR on EKS jobs. The selection of the deployment mode is based on
+    the `deploy_local_job_package` input parameter:
 
     - **Running a container that contains the code.** This is the target
       workflow for a cloud deployment.
+
+      This deployment mode is identified by the `deploy_local_job_package`
+      being set to `false`.
 
       In this case, all of the required code is baked in the image.
 
@@ -153,6 +159,9 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
 
     - **Running a container without the code, uploading the code at job
       submission**. This is the target workflow for local development.
+
+      This deployment mode is identified by the `deploy_local_job_package`
+      being set to `true`.
 
       When submitting a job, a ZIP archive of the code is created and
       uploaded to S3. The Spark driver will then pull the ZIP archive,

@@ -89,8 +89,22 @@ class EmrEksJobRunMonitor:
         Generic log events are written back to `stdout` or `stderr`,
         which will be captured by Dagster directly.
 
-        Log events containing a serialized Dagster event are yieled
+        Log events containing a serialized Dagster event are yield
         so that they can be reported to Dagster by the caller.
+
+        Args:
+            log: Logger object.
+            job_id: ID of the Spark job on the remote cluster
+            log_group_name: name of the CloudWatch logs group
+            log_stream_name_prefix: common prefix of the CloudWatch logs
+            start_timestamp_ms: earliest timestamp of logs to be fetched (presumably
+              the current timestamp minus a safety period in the past)
+            wait_interval_secs: period at which new logs will be polled
+            max_wait_after_done_secs: after the EMR client detects that the job
+              has terminated, it may take some time before all of the associated
+              logs are available. The monitor will wait for `max_wait_after_done_secs`
+              after the job termination for the logs carrying the final event of the job.
+
         """
         cw_client = boto3.client("logs", region_name=self.region_name)
         tailers = [
