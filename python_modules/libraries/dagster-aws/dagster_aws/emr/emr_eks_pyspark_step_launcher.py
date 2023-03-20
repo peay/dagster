@@ -3,7 +3,7 @@ import dataclasses
 import hashlib
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Iterator
+from typing import Any, Dict, Iterator, List, Optional
 from urllib.parse import urlparse
 
 import boto3
@@ -174,20 +174,20 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
 
     def __init__(
         self,
-        cluster_id,
-        container_image,
-        deploy_local_job_package,
-        emr_release_label,
-        job_role_arn,
-        log_group_name,
-        log4j_conf,
-        region_name,
-        staging_bucket,
-        staging_prefix,
-        spark_config,
-        ephemeral_instance,
-        additional_relative_paths,
-        working_directory_override,
+        cluster_id: str,
+        container_image: str,
+        deploy_local_job_package: bool,
+        emr_release_label: str,
+        job_role_arn: str,
+        log_group_name: str,
+        log4j_conf: Dict[str, Any],
+        region_name: str,
+        staging_bucket: str,
+        staging_prefix: str,
+        spark_config: Dict[str, Any],
+        ephemeral_instance: bool,
+        additional_relative_paths: List[str],
+        working_directory_override: Optional[str],
     ):
         EmrPySparkStepLauncherBase.__init__(
             self,
@@ -204,9 +204,13 @@ class EmrEksPySparkResource(PySparkResource, EmrPySparkStepLauncherBase):
         self.emr_release_label = check.str_param(emr_release_label, "emr_release_label")
         self.job_role_arn = check.str_param(job_role_arn, "job_role_arn")
         self.log_group_name = check.str_param(log_group_name, "log_group_name")
-        self.additional_relative_paths = additional_relative_paths
-        self.log4j_conf = log4j_conf
-        self.working_directory_override = working_directory_override
+        self.additional_relative_paths = check.list_param(
+            additional_relative_paths, "additional_relative_paths", of_type=str
+        )
+        self.log4j_conf = check.dict_param(log4j_conf, "log4j_conf")
+        self.working_directory_override = check.opt_str_param(
+            working_directory_override, "working_directory_override"
+        )
 
         if ephemeral_instance:
             # The step launcher resource is first created in

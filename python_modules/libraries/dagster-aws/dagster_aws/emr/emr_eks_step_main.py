@@ -18,7 +18,6 @@ def main(s3_bucket_step_run_ref: str, s3_key_step_run_ref: str) -> None:
     # that imports do not fail.
     _adjust_pythonpath_for_staged_assets()
 
-
     from dagster_aws.s3.file_manager import S3FileHandle, S3FileManager
 
     # Read the step description
